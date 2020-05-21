@@ -10,6 +10,9 @@ var dishesRouter= require('./routes/dish');
 var promotionsRouter=require('./routes/promo');
 var leaderRouter=require('./routes/leader');
 
+var session=require('express-session');
+var filestore=require('session-file-store')(session);
+
 var app = express();
 
 // view engine setup
@@ -33,12 +36,22 @@ app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
+////using express session to track authenticated user
+app.use(session({
+  name:'session-id',
+  secret:'nikhil',
+  saveUninitialized: false,
+  resave: false,
+  store: new filestore()
+
+}));
+
 //implement basic authentication with cookies
-app.use(cookieParser('12345-67890-09876-54321'));
+//app.use(cookieParser('12345-67890-09876-54321'));
 function auth(req,res,next)
 {
   console.log(req.headers);
-  if(!req.signedCookies.user)
+  if(!req.session.user)
   {
       var authHeader=req.headers.authorization;
       if(!authHeader)
@@ -54,7 +67,7 @@ function auth(req,res,next)
       var password=auth[1];
       if(user==='admin' && password==='password')
       {
-        res.cookie('user','admin',{signed: true});
+        req.session.user='admin';
         //res.cookie('user','admin',{signed:true});
         next();
       }
@@ -68,8 +81,9 @@ function auth(req,res,next)
       }
     }
     else{
-      if(req.signedCookies.user==='admin')
+      if(req.session.user==='admin')
       {
+        console.log("logged in using session",req.session.user);
         next();
       }
       else
