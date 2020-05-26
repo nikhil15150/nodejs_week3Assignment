@@ -10,7 +10,8 @@ var dishesRouter= require('./routes/dish');
 var promotionsRouter=require('./routes/promo');
 var leaderRouter=require('./routes/leader');
 
-
+var passport=require('passport');
+var authenticate=require('./authenticate');
 var session=require('express-session');
 var filestore=require('session-file-store')(session);
 
@@ -46,34 +47,26 @@ app.use(session({
   store: new filestore()
 
 }));
-
+app.use(passport.initialize());
+app.use(passport.session());
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 //implement basic authentication with cookies
 //app.use(cookieParser('12345-67890-09876-54321'));
 function auth(req,res,next)
 {
-  console.log(req.headers);
-  if(!req.session.user)
+  console.log(req.user);
+  if(!req.user)
   {
-        var err=new Error('Your are not authenticated');
-        res.setHeader('www-authotication','Basic');
-        err.statuscode=401;
-        next(err);
-        return;
+    var err = new Error('You are not authenticated!');
+    err.status = 403;
+    next(err);
   }
-  else if(req.session.user='authenticated')
-  {
-    next(); 
+  else {
+        next();
   }
- else
-  {
-        var err=new Error('Your are not authenticated');
-        res.setHeader('www-authetication','Basic');
-        err.statuscode=401;
-        next(err);
-        return;
-  }
+
+  
 }
 
   
