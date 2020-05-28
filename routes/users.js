@@ -6,6 +6,7 @@ var User=require('../models/users');
 var passport=require('passport');
 var router = express.Router();
 router.use(bodyParser.json());
+var authenticate=require('../authenticate');
 //////////////New user signup 
 
 router.post('/signup',(req,res,next)=>{
@@ -14,7 +15,7 @@ router.post('/signup',(req,res,next)=>{
     {
       res.statusCode=400;
       res.header('Content-Type','application/Type');
-      res.json ({success:false,message:"user creation failed"});
+      res.json ({success:false,message:err});
     }
     else
     { 
@@ -30,9 +31,10 @@ router.post('/signup',(req,res,next)=>{
 });  
 router.post('/login',passport.authenticate('local'),(req,res,next)=>{
  
+  var token=authenticate.getToken({_id:req.user._id});
   res.statusCode=200;
   res.setHeader("Content-Type",'application/json');
-  res.json({success:true,message:"you are authenticated"});
+  res.json({success:true,token:token,message:"you are authenticated"});
 });
   
 router.get('/logout',(req,res,next)=>{

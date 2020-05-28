@@ -2,7 +2,7 @@ const Promotions=require('../models/promotions');
 const express=require('express');
 const router=express.Router();
 
-
+const authenticate=require('../authenticate');
 /////////////For endpoints http://localhost:3000/promotions
 router.route('/')
 .get((req,res,next)=>{
@@ -23,7 +23,7 @@ router.route('/')
     })
 
 })
-.post((req,res,next)=>{
+.post(authenticate.verifyUser,(req,res,next)=>{
     //add a new promotions  
     Promotions.create(req.body)
     .then((promo)=>{
@@ -36,13 +36,13 @@ router.route('/')
         next(err);
     })
 })
-.put((req,res,next)=>{
+.put(authenticate.verifyUser,(req,res,next)=>{
     //update a promotion
     res.statuscode=403;
     res.setHeader('Content-Type','application/json');
     res.end(`PUT operation is not supported on https://localhost:3000/promotions`);
 })
-.delete((req,res,next)=>{
+.delete(authenticate.verifyUser,(req,res,next)=>{
     //delete all promotion
     Promotions.remove({})
     .then((promos)=>{
@@ -75,14 +75,14 @@ router.route('/:promoid')
     })
 
 })
-.post((req,res,next)=>{
+.post(authenticate.verifyUser,(req,res,next)=>{
     //add a new promotion  
    res.statuscode=403;
    res.setHeader('Content-Type','application/json');
    res.end(`POST Method is not applicable at http:\\\\localhost:3000\\promotions\\promoid`) ;
 
 })
-.put((req,res,next)=>{
+.put(authenticate.verifyUser,(req,res,next)=>{
     //update a promotion with the given id
     Promotions.findByIdAndUpdate(req.params.promoid,{$set:req.body},{$new:true})
     .then((promo)=>{
@@ -95,7 +95,7 @@ router.route('/:promoid')
         next(err);
     })
 })
-.delete((req,res,next)=>{ 
+.delete(authenticate.verifyUser,(req,res,next)=>{ 
     //delete a specific promotion
     Promotions.findByIdAndRemove(req.params.promoid)
     .then((promo)=>{

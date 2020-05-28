@@ -2,6 +2,7 @@ var express = require('express');
 var router = express.Router();
 const Dishes=require('../models/dishes');
 
+const authenticate=require('../authenticate');
 ///////////////////For http://localhost:3000/dishes/ endpoint
 router.route('/')
 .get((req,res,next)=>{
@@ -17,7 +18,8 @@ router.route('/')
       next(err);    
   })
 })
-.post((req,res,next)=>{
+//////////////as we need to verify user for post operation
+.post(authenticate.verifyUser,(req,res,next)=>{
   //Add a dish using model schema and mongodb module
   Dishes.create(req.body)
   .then((dish)=>{
@@ -31,14 +33,14 @@ router.route('/')
   })
 
 })
-.put((req,res,next)=>{
+.put(authenticate.verifyUser,(req,res,next)=>{
     //As we cannot update a dish at this end point so return an error
     res.statusCode=403;
     res.setHeader('Content-Type','Application/json');
     res.send('PUT is not a valid method for this end point');
     res.end();
 })
-.delete((req,res,next)=>{
+.delete(authenticate.verifyUser,(req,res,next)=>{
     //delete all the dishes  here
     Dishes.remove({})
     .then((dish)=>{
@@ -71,13 +73,13 @@ router.route('/:dishid')
       next(err);
   })
 })
-.post((req,res,next)=>{
+.post(authenticate.verifyUser,(req,res,next)=>{
   //Cannnot add a dish  at this end point  
   res.statusCode=403;
   res.setHeader('Content-Type','Application/json');
   res.end("POST opertoin is not valid at this end point"); 
 })
-.put((req,res,next)=>{
+.put(authenticate.verifyUser,(req,res,next)=>{
     //update the particular dish using dish id 
     Dishes.findByIdAndUpdate(req.params.dishid,{
         $set:req.body   
@@ -92,7 +94,7 @@ router.route('/:dishid')
          next(err);
      })
 })
-.delete((req,res,next)=>{
+.delete(authenticate.verifyUser,(req,res,next)=>{
     //delete particular dish    
     Dishes.findByIdAndDelete(req.params.dishid)
     .then((dish)=>{
@@ -132,7 +134,7 @@ router.route('/:dishid/comments')
       next(err);
   })
 })
-.post((req,res,next)=>{
+.post(authenticate.verifyUser,(req,res,next)=>{
   //add a commnet   
   Dishes.findById(req.params.dishid)
   .then((dish)=>{
@@ -164,12 +166,12 @@ router.route('/:dishid/comments')
       next(err);
   })
 })
-.put((req,res,next)=>{
+.put(authenticate.verifyUser,(req,res,next)=>{
    res.statusCode=403;
    res.setHeader('Content-Type','application/json');
    res.end(`Put operation not supported on /dishes/'+${req.params.dishid}+'/comments`);
 })
-.delete((req,res,next)=>{
+.delete(authenticate.verifyUser,(req,res,next)=>{
     //delete allcomments 
     Dishes.findById(req.params.dishid)
     .then((dish)=>{

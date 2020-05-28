@@ -1,7 +1,7 @@
 const Leaders=require('../models/leaders');
 const express= require('express');
 const router=express.Router();
-
+const authenticate=require('../authenticate');
 
 //////////////End points for http://localhost:3000/leaders
 router.route('/')
@@ -21,7 +21,7 @@ router.route('/')
         next(err);
     })
 })
-.post((req,res,next)=>{
+.post(authenticate.verifyUser,(req,res,next)=>{
     //add new leaders
     Leaders.create(req.body)
     .then((leader)=>{
@@ -35,14 +35,14 @@ router.route('/')
     })
 
 })
-.put((req,res,next)=>{
+.put(authenticate.verifyUser,(req,res,next)=>{
     res.statusCode=403;
     res.setHeader('Content-Type','application/json');
     res.end("PUT operation not supported at http://localhost/leaders/");
 //update a leader
     
 })
-.delete((req,res,next)=>{
+.delete(authenticate.verifyUser,(req,res,next)=>{
 ///delete all leaders
     Leaders.remove({})
     .then((leader)=>{
@@ -74,14 +74,14 @@ router.route('/:leaderid')
         next(err);
     });
 })
-.post((req,res,next)=>{
+.post(authenticate.verifyUser,(req,res,next)=>{
  ///add a leader
  res.statusCode=403;
  res.setHeader('Content-Type','application/json');
  res.end("POST is not supported on this endpoint i.e http://localhost:3000/leaders/:leaderid")
 
 })
-.put((req,res,next)=>{
+.put(authenticate.verifyUser,(req,res,next)=>{
 ///updated a particular leaders
     Leaders.findByIdAndUpdate(req.params.leaderid,{$set:req.body},{$new:true})
     .then((leader)=>{
@@ -94,7 +94,7 @@ router.route('/:leaderid')
         next(err);
     });
 })
-.delete((req,res,next)=>{
+.delete(authenticate.verifyUser,(req,res,next)=>{
 ////delete a particular leaders
         Leaders.findByIdAndRemove(req.params.leaderid)
         .then((leader)=>{
