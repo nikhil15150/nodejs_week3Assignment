@@ -8,6 +8,7 @@ router.route('/')
 .get((req,res,next)=>{
   //return all the dishes present using model and mongodb
   Dishes.find({})
+  .populate('comments.author')
   .then((dish)=>{
       console.log("Dishes Retrieved successfully");
       res.statusCode=200;
@@ -23,6 +24,7 @@ router.route('/')
   //Add a dish using model schema and mongodb module
   Dishes.create(req.body)
   .then((dish)=>{
+
       console.log("Dish Created Successfully");
       res.statusCode=200;
       res.setHeader('Content-Type','Application/json'),
@@ -63,6 +65,7 @@ router.route('/:dishid')
 .get((req,res,next)=>{
   //return  the dishes present  if present using dishid ,model and mongodb
   Dishes.findById(req.params.dishid)    
+  .populate('comments.author')
   .then((dish)=>{
       console.log("Dish Founded");
       res.statusCode=200;
@@ -115,6 +118,7 @@ router.route('/:dishid/comments')
 .get((req,res,next)=>{
   //return  all the comments
   Dishes.findById(req.params.dishid)
+  .populate('comments.author')
   .then((dish)=>{
       if(dish)
       {
@@ -139,14 +143,19 @@ router.route('/:dishid/comments')
   Dishes.findById(req.params.dishid)
   .then((dish)=>{
       if(dish!=null)
-      {
+      {   req.body.author=req.user._id;
           dish.comments.push(req.body);
           dish.save()
           .then((dish)=>{
-              console.log("New comment added successfully");
-              res.statusCode=200;
-              res.setHeader('Content-Type','application/json');
-              res.json(dish.comments);
+              Dishes.findById(dish._id)
+              .populate('comments.author')
+              .then((dish)=>{
+                console.log("New comment added successfully");
+                   res.statusCode=200;
+                res.setHeader('Content-Type','application/json');
+                res.json(dish.comments);
+              })
+              
           })
           .catch((err)=>{
               next(err);
@@ -205,18 +214,120 @@ router.route('/:dishid/comments')
 });
 
 ////////////////////For http://localhost:3000/dishes/:dishid/comments/:commentid/ endpoint
-router.route('/:dishid/comments')
+router.route('/:dishid/comments/:commentid')
 .get((req,res,next)=>{
   //Get a particular comment with comment id 
+  Dishes.findById(req.params.dishid)
+  .populate('comments.author')
+  .then((dish)=>{
+      if(dish!=null && dish.comments.id(req.params.commentid)!=null)
+      {
+            res.statusCode=200;
+            res.setHeader('Content-type','application/json');
+            res.json({status:true,comment:dish.comments.id(req.params.commentid)});
+      }
+      else if(dish!=null && dish.comments.id(req.params.commentid)==null)
+      {
+        res.statusCode=404;
+        res.setHeader('Content-type','application/json');
+        res.json({status:false,message:`comment with ${req.params.commentid} does not exist`})
+      }
+      else 
+      {
+            res.statusCode=404;
+            res.setHeader('Content-type','application/json');
+            res.json({status:false,message:`dish with id ${req.params.dishid} does not exist`});
+      }
+  })
+  .catch((err)=>{
+      next(err);
+  })
 })
 .post((req,res,next)=>{
+   res.statusCode=401;
+   res.setHeader('Content-Type','application/json');
+   res.json({status:false,message:"POST operation is not supported at this endpoint"});
   //not possible to add a comment at this end point  
 })
-.put((req,res,next)=>{
+.put(authenticate.verifyUser,(req,res,next)=>{
+    Dishes.findById(req.params.dishid)
+    .populate('comments.author')
+    .then((dish)=>{
+        if(dish!=null && dish.comments.id(req.params.commentid)!=null)
+        {
+            if(req.body.rating)
+            {
+                dish.comments.id(req.params.commentid).rating=req.body.rating;
+            }
+            if(req.body.comment)
+            {
+                dish.comments.id(req.params.commentid).comment=req.body.comment;
+            }
+            dish.save()
+            .then((dish)=>{
+                Dishes.findById(req.params.dishid)
+                .populate('comments.author')
+                .then((dish)=>{
+                    res.statusCode = 200;
+                    res.setHeader('Content-Type', 'application/json');
+                    res.json({status:true,dish:dish});  
+                })
+               })
+            .catch((err)=>{
+                next(err);
+            })
+        }
+        else if(dish!=null && dish.comments.id(req.params.commentid)==null)
+        {
+            res.statusCode=404;
+            res.setHeader('Content-Type','application/json');
+            res.json({status:false,message:`comment with id ${req.params.commentid} doesn't exist` });
+
+        }
+        else
+        {
+            res.statusCode=404;
+            res.setHeader('Content-Type','application/json');
+            res.json({status:false,message:`dish with id ${req.params.dishid} doesn't exist` });
+
+        }
+    })
+    .catch((err)=>{
+        next(err);
+    })
     //Update a particular comment using this end point 
 })
-.delete((req,res,next)=>{
+.delete(authenticate.verifyUser,(req,res,next)=>{
     //delete a particular comment 
+    Dishes.findById(req.params.dishid)
+    .then((dish)=>{
+        if(dish!=null && dish.comments.id(req.params.commentid)!=null)
+        {
+            dish.comments.id(req.params.commentid).remove()
+            .save()
+            .then((dish)=>{
+               res.statusCode=200;
+               res.setHeader('Content-Type','application/json');
+               res.json({status:true,message:`comment with id ${req.params.commentid} removed successfully`});
+            })
+        }
+        else if(dish!=null && dish.comments.id(req.params.commentid)==null)
+        {
+            res.statusCode=401;
+            res.setHeader('Content-Type','application/json');
+            res.json({status:false,message:`Comment with id ${req.params.commentid} does not exist`});
+        }
+         else{
+        
+            res.statusCode=401;
+            res.setHeader('Content-Type','application/json');
+            res.json({status:false,message:`Dish with id ${req.params.dishid} does not exist`});
+            
+        }
+    })
+    .catch((err)=>{
+        next(err);
+    })
 
 });
 module.exports = router;
