@@ -20,7 +20,7 @@ router.route('/')
   })
 })
 //////////////as we need to verify user for post operation
-.post(authenticate.verifyUser,(req,res,next)=>{
+.post(authenticate.verifyUser,authenticate.verifyAdmin,(req,res,next)=>{
   //Add a dish using model schema and mongodb module
   Dishes.create(req.body)
   .then((dish)=>{
@@ -35,14 +35,14 @@ router.route('/')
   })
 
 })
-.put(authenticate.verifyUser,(req,res,next)=>{
+.put(authenticate.verifyUser,authenticate.verifyAdmin,(req,res,next)=>{
     //As we cannot update a dish at this end point so return an error
     res.statusCode=403;
     res.setHeader('Content-Type','Application/json');
     res.send('PUT is not a valid method for this end point');
     res.end();
 })
-.delete(authenticate.verifyUser,(req,res,next)=>{
+.delete(authenticate.verifyUser,authenticate.verifyAdmin,(req,res,next)=>{
     //delete all the dishes  here
     Dishes.remove({})
     .then((dish)=>{
@@ -76,13 +76,13 @@ router.route('/:dishid')
       next(err);
   })
 })
-.post(authenticate.verifyUser,(req,res,next)=>{
+.post(authenticate.verifyUser,authenticate.verifyAdmin,(req,res,next)=>{
   //Cannnot add a dish  at this end point  
   res.statusCode=403;
   res.setHeader('Content-Type','Application/json');
   res.end("POST opertoin is not valid at this end point"); 
 })
-.put(authenticate.verifyUser,(req,res,next)=>{
+.put(authenticate.verifyUser,authenticate.verifyAdmin,(req,res,next)=>{
     //update the particular dish using dish id 
     Dishes.findByIdAndUpdate(req.params.dishid,{
         $set:req.body   
@@ -97,7 +97,7 @@ router.route('/:dishid')
          next(err);
      })
 })
-.delete(authenticate.verifyUser,(req,res,next)=>{
+.delete(authenticate.verifyUser,authenticate.verifyAdmin,(req,res,next)=>{
     //delete particular dish    
     Dishes.findByIdAndDelete(req.params.dishid)
     .then((dish)=>{
@@ -180,7 +180,7 @@ router.route('/:dishid/comments')
    res.setHeader('Content-Type','application/json');
    res.end(`Put operation not supported on /dishes/'+${req.params.dishid}+'/comments`);
 })
-.delete(authenticate.verifyUser,(req,res,next)=>{
+.delete(authenticate.verifyUser,authenticate.verifyAdmin,(req,res,next)=>{
     //delete allcomments 
     Dishes.findById(req.params.dishid)
     .then((dish)=>{
@@ -255,42 +255,54 @@ router.route('/:dishid/comments/:commentid')
     .then((dish)=>{
         if(dish!=null && dish.comments.id(req.params.commentid)!=null)
         {
-            if(req.body.rating)
+           
+            console.log(dish.comments.id(req.params.commentid).author._id);
+            if(req.user._id.equals(dish.comments.id(req.params.commentid).author._id))
             {
-                dish.comments.id(req.params.commentid).rating=req.body.rating;
+                    if(req.body.rating)
+                    {
+                        dish.comments.id(req.params.commentid).rating=req.body.rating;
+                    }
+                    if(req.body.comment)
+                    {
+                        dish.comments.id(req.params.commentid).comment=req.body.comment;
+                    }
+                    dish.save()
+                    .then((dish)=>{
+                        Dishes.findById(req.params.dishid)
+                        .populate('comments.author')
+                        .then((dish)=>{
+                            res.statusCode = 200;
+                            res.setHeader('Content-Type', 'application/json');
+                            res.json({status:true,dish:dish});  
+                        })
+                    })
+                    .catch((err)=>{
+                        next(err);
+                    })
             }
-            if(req.body.comment)
+            else
             {
-                dish.comments.id(req.params.commentid).comment=req.body.comment;
+                res.statusCode=403;
+                res.setHeader('Content-Type','application/json');
+                res.json({status:false,message:"you can only modify your comment"});
             }
-            dish.save()
-            .then((dish)=>{
-                Dishes.findById(req.params.dishid)
-                .populate('comments.author')
-                .then((dish)=>{
-                    res.statusCode = 200;
-                    res.setHeader('Content-Type', 'application/json');
-                    res.json({status:true,dish:dish});  
-                })
-               })
-            .catch((err)=>{
-                next(err);
-            })
         }
         else if(dish!=null && dish.comments.id(req.params.commentid)==null)
         {
-            res.statusCode=404;
-            res.setHeader('Content-Type','application/json');
-            res.json({status:false,message:`comment with id ${req.params.commentid} doesn't exist` });
+                    res.statusCode=404;
+                    res.setHeader('Content-Type','application/json');
+                    res.json({status:false,message:`comment with id ${req.params.commentid} doesn't exist` });
 
         }
         else
-        {
-            res.statusCode=404;
-            res.setHeader('Content-Type','application/json');
-            res.json({status:false,message:`dish with id ${req.params.dishid} doesn't exist` });
+         {
+                    res.statusCode=404;
+                    res.setHeader('Content-Type','application/json');
+                    res.json({status:false,message:`dish with id ${req.params.dishid} doesn't exist` });
 
         }
+     
     })
     .catch((err)=>{
         next(err);

@@ -47,3 +47,19 @@ exports.verifyUser=passport.authenticate('jwt',{session:false});
 passport.serializeUser(user.serializeUser());
 passport.deserializeUser(user.deserializeUser());
 
+/////////////////////////////verify whether user have admin privileges////////////////
+exports.verifyAdmin=((req,res,next)=>{
+
+    //console.log(req.user.admin);
+    if(req.user.admin===true)
+    {
+        console.log("you are admin user");
+        next();
+    }
+    else{
+            res.statusCode=403;
+            res.setHeader('Content-Type','application/json');
+            res.json({status:false,message:"you are not authorized to perform this action,Admin privileges needed"});
+    }
+});
+

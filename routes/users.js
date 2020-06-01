@@ -7,7 +7,31 @@ var passport=require('passport');
 var router = express.Router();
 router.use(bodyParser.json());
 var authenticate=require('../authenticate');
-//////////////New user signup 
+//////////////////////List all users only to admin users/////////////
+router.get('/',authenticate.verifyUser,authenticate.verifyAdmin,((req,res,next)=>{
+      User.find({}).then((user)=>{
+        if(user)
+        {
+            res.statusCode=200;
+            res.setHeader('Content-Type','application/json');
+            res.json({status:true,users:user});
+        }
+        else{
+            res.statusCode=400;
+            res.setHeader('Content-Type','application/json');
+            res.json({status:false,message:"No Users present"});
+        }
+      })
+      .catch((err)=>{
+          next(err);
+      })
+}));
+
+
+
+//////////////New user signup
+
+
 
 router.post('/signup',(req,res,next)=>{
   User.register( new User ({username:req.body.username}),req.body.password,(err,user)=>{
